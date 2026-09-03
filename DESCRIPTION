@@ -1,19 +1,22 @@
 Package: wassersteinStats
-Title: An Amazing Shiny App
+Title: Wasserstein Statistics
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "firstname",
-           family = "lastname",
+    person(given = "Seonguk",
+           family = "Choi",
            role = c("aut", "cre"),
-           email = "your@email.com")
-Description: What the package does (one paragraph).
-License: What license is it under?
+           email = "random.student.kr@gmail.com")
+Description: Computes optimal transport maps, Fréchet barycenters, and global/local Fréchet regression for probability distributions. Includes an interactive Shiny application.
+License: MIT + file LICENSE
 Imports: 
     config,
+    dplyr,
+    ggplot2,
     golem,
-    shiny
+    shiny,
+    stats
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
 URL: https://github.com/randomstudentkr/wassersteinStats
 BugReports: https://github.com/randomstudentkr/wassersteinStats/issues
+Config/roxygen2/version: 8.1.0
