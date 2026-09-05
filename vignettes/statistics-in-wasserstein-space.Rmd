@@ -1,0 +1,309 @@
+---
+title: "Statistics in Wasserstein Space"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{statistics-in-wasserstein-space}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+Load required packages.
+
+```{r setup}
+devtools::load_all()
+library(tidyverse)
+```
+
+## 1. `wasserstein_1d`
+
+Two normal samples.
+
+```{r}
+set.seed(2026)
+
+n_pts <- 100
+
+sample1 <- rnorm(n_pts, 0, 1)
+sample2 <- rnorm(n_pts, 2, 1)
+```
+
+```{r}
+# Combine into a single long-format data frame
+df <- data.frame(
+  value = c(sample1, sample2),
+  group = rep(c("Sample 1", "Sample 2"), each = n_pts)
+)
+
+# Plot overlapping density curves
+ggplot(df, aes(x = value, fill = group)) +
+  geom_density(alpha = 0.5) +
+  theme_minimal() +
+  labs(
+    title = "Density Plot of Sample 1 and Sample 2",
+    x = "Value",
+    y = "Density",
+    fill = "Distribution"
+  )
+```
+
+Wasserstein distance between the two samples.
+
+```{r}
+wasserstein1d(sample1, sample2)
+```
+
+Visualize the transport map by point-to-point segments
+
+```{r}
+# Sorted samples for perfect 1D coupling
+gamma <- sort(sample1)
+mu <- sort(sample2)
+
+df_transport <- data.frame(
+  source = gamma,
+  target = mu
+)
+
+ggplot(df_transport) +
+  # Draw the transport paths
+  geom_segment(aes(x = source, xend = target, y = 1, yend = 0), 
+               alpha = 0.3, color = "blue") +
+  # Draw the actual data points
+  geom_point(aes(x = source, y = 1), color = "black", size = 1.5) +
+  geom_point(aes(x = target, y = 0), color = "red", size = 1.5) +
+  scale_y_continuous(breaks = c(0, 1), labels = c("Target (mu)", "Base (gamma)")) +
+  theme_minimal() +
+  labs(title = "Optimal Transport Map", x = "Value", y = "") +
+  theme(panel.grid.minor.y = element_blank())
+```
+
+Visualize the logarithmic map by tangent vector lollipop chart.
+
+```{r}
+# The tangent vector
+tangent_v <- mu - gamma
+
+df_log <- data.frame(
+  gamma = gamma,
+  displacement = tangent_v
+)
+
+ggplot(df_log, aes(x = gamma, y = displacement)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  geom_segment(aes(xend = gamma, yend = 0), color = "gray50") +
+  geom_point(color = "darkgreen", size = 2) +
+  theme_minimal() +
+  labs(
+    title = "Logarithmic Map: Displacement Vectors", 
+    x = "Base Measure Coordinates", 
+    y = "Tangent Vector (Displacement)"
+  )
+```
+
+Visualize the exponential map by geodesic interpolation.
+In the Shiny app, the user will morph gamma to mu by using the time bar.
+
+```{r}
+# Define time steps
+t_steps <- seq(0, 1, by = 0.25)
+
+# Apply the exponential map at each time step
+df_exp <- lapply(t_steps, function(t) {
+  data.frame(
+    # exp_gamma(t * v) = gamma + t * v
+    value = gamma + t * tangent_v, 
+    t_label = as.factor(t)
+  )
+}) |> bind_rows()
+
+ggplot(df_exp, aes(x = value, fill = t_label, group = t_label)) +
+  geom_density(alpha = 0.5, color = "white", size = 0.2) +
+  scale_fill_viridis_d(option = "plasma", name = "Time (t)") +
+  theme_minimal() +
+  labs(
+    title = "Exponential Map: Geodesic Path from Sample 1 to Sample 2", 
+    x = "Value", 
+    y = "Density"
+  )
+```
+
+
+
+
+
+## 2. `frechet_mean`
+
+```{r}
+set.seed(2026)
+
+n_pts <- 100
+samples <- lapply(1:10, function(i) {
+  shift <- runif(n = 1, min = -1, max = 1)
+  c(rnorm(n_pts * 0.1, mean = 0 + shift, sd = 1), 
+    rnorm(n_pts * 0.6, mean = 5 + shift, sd = 1),
+    rnorm(n_pts * 0.3, mean = 10 + shift, sd = 1))
+})
+
+# Combine for plotting
+df_samples <- bind_rows(lapply(1:10, function(i) {
+  data.frame(value = samples[[i]], type = "Original Samples", group = paste("Sample", i))
+}))
+```
+
+```{r}
+# 1. Exact 1D Fréchet Mean
+mean_exact <- frechet_mean_1d_exact(samples, n_grid = n_pts)
+
+# 2. Steepest Descent Fréchet Mean
+# Initialize with the first sample
+mean_iterative <- frechet_mean_1d_steepest_descent(
+  gamma_init = samples[[1]], 
+  target_samples = samples, 
+  max_iter = 50, 
+  tol = 1e-4
+)
+
+# Format outputs for ggplot
+df_exact <- data.frame(
+  value = mean_exact, 
+  type = "Exact Fréchet Mean", 
+  group = "Exact"
+)
+
+df_iterative <- data.frame(
+  value = mean_iterative, 
+  type = "Steepest Descent", 
+  group = "Iterative"
+)
+
+df_plot <- bind_rows(df_samples, df_exact, df_iterative)
+```
+
+In Shiny app, every iteration, i.e., the progress of steepest descent process will be shown.
+
+```{r}
+ggplot(df_plot, aes(x = value, group = group, color = type, size = type, linetype = type)) +
+  geom_density(alpha = 0.5) +
+  scale_color_manual(values = c(
+    "Original Samples" = "gray90", 
+    "Exact Fréchet Mean" = "dodgerblue", 
+    "Steepest Descent" = "darkorange"
+  )) +
+  scale_size_manual(values = c(
+    "Original Samples" = 0.8, 
+    "Exact Fréchet Mean" = 2, 
+    "Steepest Descent" = 1.2
+  )) +
+  scale_linetype_manual(values = c(
+    "Original Samples" = "dashed", 
+    "Exact Fréchet Mean" = "solid", 
+    "Steepest Descent" = "twodash"
+  )) +
+  theme_minimal() +
+  labs(
+    title = "Fréchet Barycenter of Bimodal Distributions",
+    subtitle = "Comparing Exact Quantile Averaging vs. Steepest Descent",
+    x = "Value",
+    y = "Density",
+    color = "Distribution Type",
+    size = "Distribution Type",
+    linetype = "Distribution Type"
+  ) +
+  theme(legend.position = "bottom")
+```
+
+
+
+
+
+## 3. Wasserstein Distance and Barycenter for 2d Distributions
+
+2d point clouds.
+
+```{r}
+set.seed(2026)
+
+n_pts <- 100
+
+x <- rnorm(n = 3, mean = 0, sd = 2)
+y <- rnorm(n = 3, mean = 0, sd = 2)
+
+# Create 3 point clouds shifted in a triangle formation
+cloud1 <- cbind(rnorm(n_pts, x[1], 0.5), rnorm(n_pts, y[1], 0.5))
+cloud2 <- cbind(rnorm(n_pts, x[2], 0.5), rnorm(n_pts, y[2], 0.5))
+cloud3 <- cbind(rnorm(n_pts, x[3], 0.5), rnorm(n_pts, y[3], 0.5))
+
+targets <- list(cloud1, cloud2, cloud3)
+```
+
+```{r}
+# Initialize the descent at the first point cloud
+barycenter <- frechet_mean_2d_steepest(
+  gamma_init = cloud1, 
+  target_samples = targets, 
+  max_iter = 100, 
+  tol = 1e-5
+)
+```
+
+```{r}
+# Combine original target clouds for plotting
+df_clouds <- bind_rows(
+  data.frame(x = cloud1[,1], y = cloud1[,2], group = "Cloud 1"),
+  data.frame(x = cloud2[,1], y = cloud2[,2], group = "Cloud 2"),
+  data.frame(x = cloud3[,1], y = cloud3[,2], group = "Cloud 3")
+)
+
+# Format barycenter data
+df_bary <- data.frame(x = barycenter[,1], y = barycenter[,2], group = "Fréchet Mean")
+
+# Map the barycenter to Cloud 1 to extract the transport segments
+mapped_cloud1 <- transport_map_2d(barycenter, cloud1)
+
+df_segments <- data.frame(
+  x_start = barycenter[,1],
+  y_start = barycenter[,2],
+  x_end   = mapped_cloud1[,1],
+  y_end   = mapped_cloud1[,2]
+)
+```
+
+```{r}
+ggplot() +
+  # 1. Draw optimal transport segments from the barycenter to Cloud 1
+  geom_segment(data = df_segments, 
+               aes(x = x_start, y = y_start, xend = x_end, yend = y_end), 
+               color = "gray70", alpha = 0.6) +
+               
+  # 2. Plot the original target point clouds
+  geom_point(data = df_clouds, aes(x = x, y = y, color = group), 
+             alpha = 0.5, size = 2) +
+             
+  # 3. Plot the computed Fréchet mean
+  geom_point(data = df_bary, aes(x = x, y = y, color = group), 
+             size = 3, shape = 17) +
+             
+  scale_color_manual(values = c(
+    "Cloud 1" = "dodgerblue",
+    "Cloud 2" = "firebrick",
+    "Cloud 3" = "forestgreen",
+    "Fréchet Mean" = "black"
+  )) +
+  theme_minimal() +
+  labs(
+    title = "2D Fréchet Mean of Point Clouds",
+    subtitle = "Triangles represent the mean. Gray lines trace the optimal transport map to Cloud 1.",
+    x = "Coordinate 1",
+    y = "Coordinate 2",
+    color = "Distribution"
+  ) +
+  theme(legend.position = "right")
+```
+
