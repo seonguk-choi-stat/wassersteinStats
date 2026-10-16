@@ -1,12 +1,16 @@
 Package: wassersteinStats
-Title: Wasserstein Statistics
+Title: Optimal Transport and Frechet Means in Wasserstein Space
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Seonguk",
            family = "Choi",
            role = c("aut", "cre"),
-           email = "random.student.kr@gmail.com")
-Description: Computes optimal transport maps and Fréchet barycenters for probability distributions. Includes an interactive Shiny application.
+           email = "seonguk.choi.stat@gmail.com")
+Description: Computes Wasserstein distances, optimal transport maps, and
+    Frechet means (barycenters) of probability distributions in one and two
+    dimensions, together with the exponential and logarithmic maps of
+    one-dimensional Wasserstein space. Includes an interactive Shiny
+    application for exploring these objects.
 License: MIT + file LICENSE
 Imports: 
     config,
@@ -18,8 +22,8 @@ Imports:
     transport
 Encoding: UTF-8
 LazyData: true
-URL: https://github.com/randomstudentkr/wassersteinStats
-BugReports: https://github.com/randomstudentkr/wassersteinStats/issues
+URL: https://github.com/seonguk-choi-stat/wassersteinStats
+BugReports: https://github.com/seonguk-choi-stat/wassersteinStats/issues
 Config/roxygen2/version: 8.1.0
 Suggests: 
     knitr,
