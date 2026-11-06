@@ -4,7 +4,7 @@ An R package and interactive Shiny app for statistics in Wasserstein space:
 optimal transport maps, Wasserstein distances, geodesics, and Fréchet means
 (barycenters) of probability distributions on the line and in the plane.
 
-<!-- LIVE-DEMO -->
+**Live demo:** [seonguk-choi-stat.shinyapps.io/wassersteinStats](https://seonguk-choi-stat.shinyapps.io/wassersteinStats/)
 
 ## The app
 
@@ -16,7 +16,7 @@ The app has three tabs, each built on the package functions.
 | **Fréchet Mean (1D)** | The Wasserstein barycenter of several distributions, and gradient descent on the Fréchet functional, iteration by iteration. |
 | **2D Point Clouds** | The barycenter of planar point clouds by the fixed-point iteration, with the optimal matching from the barycenter to each cloud. |
 
-<!-- SCREENSHOT -->
+![The 1D Transport tab: two distributions, the geodesic between them at t = 0.5, the optimal matching, and the transport map](man/figures/app.png)
 
 Run it locally:
 
