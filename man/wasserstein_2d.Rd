@@ -2,20 +2,27 @@
 % Please edit documentation in R/wasserstein_2d.R
 \name{wasserstein_2d}
 \alias{wasserstein_2d}
-\title{Compute 2D Wasserstein Distance}
+\title{Wasserstein distance between two planar point clouds}
 \usage{
 wasserstein_2d(x, y, p = 2)
 }
 \arguments{
-\item{x}{A numeric matrix with 2 columns representing the source point cloud.}
+\item{x, y}{Numeric matrices with two columns and the same number of rows.}
 
-\item{y}{A numeric matrix with 2 columns representing the target point cloud.}
-
-\item{p}{A numeric value >= 1 specifying the order of the metric.}
+\item{p}{Order of the distance, a number \eqn{\ge 1}. Defaults to 2.}
 }
 \value{
-A numeric value representing the W_p distance.
+The distance \eqn{W_p}, a non-negative number.
 }
 \description{
-Calculates the W_p distance between two 2D empirical point clouds of equal size.
+Computes the p-Wasserstein distance between the empirical measures of two
+point clouds in \eqn{R^2} of the same size, each point carrying equal
+weight:
+\deqn{W_p = \Big(\min_\sigma \frac{1}{n}\sum_{i=1}^n
+  |x_i - y_{\sigma(i)}|^p\Big)^{1/p}.}
+}
+\examples{
+set.seed(1)
+x <- matrix(rnorm(100), ncol = 2)
+wasserstein_2d(x, sweep(x, 2, c(3, 4), "+"))  # translation by (3, 4): 5
 }

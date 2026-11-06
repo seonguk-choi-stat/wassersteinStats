@@ -2,20 +2,30 @@
 % Please edit documentation in R/wasserstein_1d.R
 \name{exp_map_1d}
 \alias{exp_map_1d}
-\title{Exponential Map in 1D Wasserstein Space}
+\title{Exponential map in one-dimensional Wasserstein space}
 \usage{
-exp_map_1d(gamma, v)
+exp_map_1d(gamma, v, t = 1)
 }
 \arguments{
-\item{gamma}{Numeric vector for the base measure.}
+\item{gamma}{Numeric vector: sample of the base measure.}
 
-\item{v}{Numeric vector representing the tangent vector.}
+\item{v}{Numeric vector of the same length as \code{gamma}: the tangent vector.}
+
+\item{t}{Step along the tangent vector. Defaults to 1. For a tangent vector
+produced by \code{\link[=log_map_1d]{log_map_1d()}}, values in \eqn{[0, 1]} stay on the geodesic.}
 }
 \value{
-A numeric vector representing the reconstructed measure.
+A numeric vector: the points of the pushed-forward sample, in the
+order of \code{gamma}.
 }
 \description{
-Pushes a tangent vector forward from a base measure to recover a distribution.
-This is defined as the push-forward of the base measure under the identity 
-plus the tangent vector.
+Pushes the base measure forward along a tangent vector,
+\eqn{\exp_\gamma(t v) = (\mathrm{id} + t v)_\# \gamma}. With
+\code{v = log_map_1d(gamma, mu)}, varying \code{t} from 0 to 1 traces the
+Wasserstein geodesic (displacement interpolation) from \code{gamma} to \code{mu}.
+}
+\examples{
+gamma <- c(0, 1, 2)
+v <- log_map_1d(gamma, c(1, 3, 5))
+exp_map_1d(gamma, v, t = 0.5)
 }

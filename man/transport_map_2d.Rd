@@ -2,19 +2,23 @@
 % Please edit documentation in R/wasserstein_2d.R
 \name{transport_map_2d}
 \alias{transport_map_2d}
-\title{2D Optimal Transport Map}
+\title{Optimal transport map between two planar point clouds}
 \usage{
 transport_map_2d(x, y)
 }
 \arguments{
-\item{x}{A numeric matrix with 2 columns.}
-
-\item{y}{A numeric matrix with 2 columns.}
+\item{x, y}{Numeric matrices with two columns and the same number of rows.}
 }
 \value{
-A numeric matrix representing y reordered to match x.
+A numeric matrix with the same shape as \code{x}: row \code{i} is the point
+of \code{y} matched to \code{x[i, ]}.
 }
 \description{
-Finds the 1-to-1 assignment mapping points in x to points in y.
-Assumes x and y have the same number of points.
+Returns the optimal (\eqn{W_2}) assignment of the points of \code{y} to the
+points of \code{x}.
+}
+\examples{
+x <- cbind(c(0, 1), c(0, 0))
+y <- cbind(c(1, 0), c(1, 1))
+transport_map_2d(x, y)
 }

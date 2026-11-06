@@ -2,20 +2,25 @@
 % Please edit documentation in R/wasserstein_1d.R
 \name{log_map_1d}
 \alias{log_map_1d}
-\title{Logarithmic Map in 1D Wasserstein Space}
+\title{Logarithmic map in one-dimensional Wasserstein space}
 \usage{
 log_map_1d(gamma, mu)
 }
 \arguments{
-\item{gamma}{Numeric vector for the base measure.}
+\item{gamma}{Numeric vector: sample of the base measure.}
 
-\item{mu}{Numeric vector for the target measure.}
+\item{mu}{Numeric vector: sample of the target measure.}
 }
 \value{
-A numeric vector representing the tangent vector.
+A numeric vector of the same length and order as \code{gamma}: the
+displacement \eqn{T(\gamma_i) - \gamma_i} of each base point.
 }
 \description{
-Projects a target measure into the tangent space at a base measure.
-The mapping is defined by the displacement of the optimal transport map 
-from the identity.
+Lifts the target measure \code{mu} to the tangent space at the base measure
+\code{gamma}. The tangent vector is the displacement of the optimal map from
+the identity, \eqn{\log_\gamma(\mu) = T - \mathrm{id}}, evaluated at the
+points of \code{gamma}.
+}
+\examples{
+log_map_1d(c(0, 1, 2), c(1, 3, 5))
 }

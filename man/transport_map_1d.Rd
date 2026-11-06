@@ -2,20 +2,28 @@
 % Please edit documentation in R/wasserstein_1d.R
 \name{transport_map_1d}
 \alias{transport_map_1d}
-\title{1D Optimal Transport Map}
+\title{Optimal transport map between two one-dimensional samples}
 \usage{
 transport_map_1d(x, y)
 }
 \arguments{
-\item{x}{A numeric vector representing the source sample.}
+\item{x}{Numeric vector: the source sample.}
 
-\item{y}{A numeric vector representing the target sample.}
+\item{y}{Numeric vector: the target sample.}
 }
 \value{
-A numeric vector of the same length as x, representing mapped values.
+A numeric vector of the same length and order as \code{x}: the image
+\eqn{T(x_i)} of each source point.
 }
 \description{
-Constructs the optimal transport map T(x) pushing distribution x to y.
-In 1D, this corresponds to applying the target quantile function to the 
-source cumulative distribution.
+Evaluates the monotone transport map \eqn{T = F_\nu^{-1} \circ F_\mu} that
+pushes the empirical measure of \code{x} onto that of \code{y}. Each point of \code{x} is
+assigned the level of its rank cell, \eqn{(r - 1/2)/n}, and sent to the
+target quantile at that level. Ties in \code{x} are broken by order of
+appearance. When \code{x} and \code{y} have the same size, the result is the sorted
+matching: the \eqn{i}-th smallest point of \code{x} goes to the \eqn{i}-th
+smallest point of \code{y}.
+}
+\examples{
+transport_map_1d(c(3, 1, 2), c(10, 30, 20))
 }
