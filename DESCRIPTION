@@ -16,8 +16,11 @@ Depends:
     R (>= 4.1.0)
 Imports: 
     config,
+    ggplot2 (>= 3.4.0),
     golem,
+    rlang,
     shiny,
+    stats,
     transport
 Encoding: UTF-8
 URL: https://github.com/seonguk-choi-stat/wassersteinStats
@@ -25,7 +28,6 @@ BugReports: https://github.com/seonguk-choi-stat/wassersteinStats/issues
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.1.0
 Suggests: 
-    ggplot2,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)

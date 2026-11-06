@@ -18,4 +18,5 @@ importFrom(golem,
   favicon,
   with_golem_options
 )
+importFrom(rlang,.data)
 importFrom(shiny,shinyApp)
