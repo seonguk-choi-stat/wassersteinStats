@@ -17,11 +17,11 @@ knitr::opts_chunk$set(
 Load required packages.
 
 ```{r setup}
-devtools::load_all()
-library(tidyverse)
+library(wassersteinStats)
+library(ggplot2)
 ```
 
-## 1. `wasserstein_1d`
+## 1. `wasserstein_1d()`
 
 Two normal samples.
 
@@ -56,7 +56,7 @@ ggplot(df, aes(x = value, fill = group)) +
 Wasserstein distance between the two samples.
 
 ```{r}
-wasserstein1d(sample1, sample2)
+wasserstein_1d(sample1, sample2)
 ```
 
 Visualize the transport map by point-to-point segments
@@ -121,10 +121,10 @@ df_exp <- lapply(t_steps, function(t) {
     value = gamma + t * tangent_v, 
     t_label = as.factor(t)
   )
-}) |> bind_rows()
+}) |> do.call(what = rbind)
 
 ggplot(df_exp, aes(x = value, fill = t_label, group = t_label)) +
-  geom_density(alpha = 0.5, color = "white", size = 0.2) +
+  geom_density(alpha = 0.5, color = "white", linewidth = 0.2) +
   scale_fill_viridis_d(option = "plasma", name = "Time (t)") +
   theme_minimal() +
   labs(
@@ -138,7 +138,7 @@ ggplot(df_exp, aes(x = value, fill = t_label, group = t_label)) +
 
 
 
-## 2. `frechet_mean`
+## 2. `frechet_mean_1d()`
 
 ```{r}
 set.seed(2026)
@@ -152,23 +152,25 @@ samples <- lapply(1:10, function(i) {
 })
 
 # Combine for plotting
-df_samples <- bind_rows(lapply(1:10, function(i) {
+df_samples <- do.call(rbind, lapply(1:10, function(i) {
   data.frame(value = samples[[i]], type = "Original Samples", group = paste("Sample", i))
 }))
 ```
 
 ```{r}
 # 1. Exact 1D Fréchet Mean
-mean_exact <- frechet_mean_1d_exact(samples, n_grid = n_pts)
+mean_exact <- frechet_mean_1d(samples, n_grid = n_pts)
 
 # 2. Steepest Descent Fréchet Mean
 # Initialize with the first sample
-mean_iterative <- frechet_mean_1d_steepest_descent(
-  gamma_init = samples[[1]], 
-  target_samples = samples, 
-  max_iter = 50, 
+fit_iterative <- frechet_mean_1d_descent(
+  samples,
+  init = samples[[1]],
+  step = 0.5,
+  max_iter = 50,
   tol = 1e-4
 )
+mean_iterative <- fit_iterative$mean
 
 # Format outputs for ggplot
 df_exact <- data.frame(
@@ -183,20 +185,20 @@ df_iterative <- data.frame(
   group = "Iterative"
 )
 
-df_plot <- bind_rows(df_samples, df_exact, df_iterative)
+df_plot <- rbind(df_samples, df_exact, df_iterative)
 ```
 
 In Shiny app, every iteration, i.e., the progress of steepest descent process will be shown.
 
 ```{r}
-ggplot(df_plot, aes(x = value, group = group, color = type, size = type, linetype = type)) +
+ggplot(df_plot, aes(x = value, group = group, color = type, linewidth = type, linetype = type)) +
   geom_density(alpha = 0.5) +
   scale_color_manual(values = c(
     "Original Samples" = "gray90", 
     "Exact Fréchet Mean" = "dodgerblue", 
     "Steepest Descent" = "darkorange"
   )) +
-  scale_size_manual(values = c(
+  scale_linewidth_manual(values = c(
     "Original Samples" = 0.8, 
     "Exact Fréchet Mean" = 2, 
     "Steepest Descent" = 1.2
@@ -213,7 +215,7 @@ ggplot(df_plot, aes(x = value, group = group, color = type, size = type, linetyp
     x = "Value",
     y = "Density",
     color = "Distribution Type",
-    size = "Distribution Type",
+    linewidth = "Distribution Type",
     linetype = "Distribution Type"
   ) +
   theme(legend.position = "bottom")
@@ -245,17 +247,18 @@ targets <- list(cloud1, cloud2, cloud3)
 
 ```{r}
 # Initialize the descent at the first point cloud
-barycenter <- frechet_mean_2d_steepest(
-  gamma_init = cloud1, 
-  target_samples = targets, 
-  max_iter = 100, 
+fit_2d <- frechet_mean_2d(
+  targets,
+  init = cloud1,
+  max_iter = 100,
   tol = 1e-5
 )
+barycenter <- fit_2d$mean
 ```
 
 ```{r}
 # Combine original target clouds for plotting
-df_clouds <- bind_rows(
+df_clouds <- rbind(
   data.frame(x = cloud1[,1], y = cloud1[,2], group = "Cloud 1"),
   data.frame(x = cloud2[,1], y = cloud2[,2], group = "Cloud 2"),
   data.frame(x = cloud3[,1], y = cloud3[,2], group = "Cloud 3")

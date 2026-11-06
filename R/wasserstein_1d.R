@@ -1,85 +1,118 @@
-#' Compute 1D Wasserstein Distance
+#' Wasserstein distance between two one-dimensional samples
 #'
-#' Calculates the p-Wasserstein distance between two 1D empirical distributions.
-#' The distance is defined as the minimal total transportation cost to reconfigure 
-#' the mass of the first distribution into the second.
+#' Computes the p-Wasserstein distance between the empirical measures of two
+#' samples on the real line. In one dimension the optimal coupling is the
+#' monotone (quantile) coupling, so
+#' \deqn{W_p(\mu, \nu)^p = \int_0^1 |F_\mu^{-1}(u) - F_\nu^{-1}(u)|^p \, du.}
+#' Both quantile functions are step functions, so the integral is evaluated
+#' exactly on the merged breakpoints \eqn{i/n} and \eqn{j/m}. The samples may
+#' have different sizes.
 #'
-#' @param x A numeric vector representing the source sample.
-#' @param y A numeric vector representing the target sample.
-#' @param p A numeric value >= 1 specifying the order of the metric (default is 2).
+#' @param x,y Numeric vectors: the two samples, each given equal weight per
+#'   point.
+#' @param p Order of the distance, a number \eqn{\ge 1}. Defaults to 2.
 #'
-#' @return A numeric value representing the W_p distance.
+#' @return The distance \eqn{W_p}, a non-negative number.
 #' @export
 #'
 #' @examples
-#' wasserstein1d(rnorm(100, 0, 1), rnorm(100, 5, 1))
-wasserstein1d <- function(x, y, p = 2) {
-  if (length(x) == length(y)) {
-    # If samples are equal length, the optimal coupling is exactly matched quantiles
-    cost <- mean(abs(sort(x) - sort(y))^p)
-  } else {
-    # For unequal sizes, evaluate inverse CDFs on a common probability grid
-    probs <- seq(0, 1, length.out = max(length(x), length(y)))
-    qx <- stats::quantile(x, probs, names = FALSE)
-    qy <- stats::quantile(y, probs, names = FALSE)
-    cost <- mean(abs(qx - qy)^p)
-  }
-  return(cost^(1/p))
+#' set.seed(1)
+#' wasserstein_1d(rnorm(200), rnorm(150, mean = 2))
+#'
+#' # For two normal laws, W_2 equals sqrt((m1 - m2)^2 + (s1 - s2)^2)
+#' u <- (1:1000 - 0.5) / 1000
+#' wasserstein_1d(qnorm(u, 0, 1), qnorm(u, 2, 3))
+wasserstein_1d <- function(x, y, p = 2) {
+  check_sample_1d(x, "x")
+  check_sample_1d(y, "y")
+  check_p(p)
+
+  n <- length(x)
+  m <- length(y)
+  breaks <- sort(unique(c(seq_len(n) / n, seq_len(m) / m)))
+  widths <- diff(c(0, breaks))
+  mids <- breaks - widths / 2
+
+  cost <- sum(widths * abs(empirical_quantile(x, mids) -
+                             empirical_quantile(y, mids))^p)
+  cost^(1 / p)
 }
 
-#' 1D Optimal Transport Map
+#' Optimal transport map between two one-dimensional samples
 #'
-#' Constructs the optimal transport map T(x) pushing distribution x to y.
-#' In 1D, this corresponds to applying the target quantile function to the 
-#' source cumulative distribution.
+#' Evaluates the monotone transport map \eqn{T = F_\nu^{-1} \circ F_\mu} that
+#' pushes the empirical measure of `x` onto that of `y`. Each point of `x` is
+#' assigned the level of its rank cell, \eqn{(r - 1/2)/n}, and sent to the
+#' target quantile at that level. Ties in `x` are broken by order of
+#' appearance. When `x` and `y` have the same size, the result is the sorted
+#' matching: the \eqn{i}-th smallest point of `x` goes to the \eqn{i}-th
+#' smallest point of `y`.
 #'
-#' @param x A numeric vector representing the source sample.
-#' @param y A numeric vector representing the target sample.
+#' @param x Numeric vector: the source sample.
+#' @param y Numeric vector: the target sample.
 #'
-#' @return A numeric vector of the same length as x, representing mapped values.
+#' @return A numeric vector of the same length and order as `x`: the image
+#'   \eqn{T(x_i)} of each source point.
 #' @export
+#'
+#' @examples
+#' transport_map_1d(c(3, 1, 2), c(10, 30, 20))
 transport_map_1d <- function(x, y) {
-  # F(x): Empirical CDF of the source
-  F_x <- stats::ecdf(x)
-  u <- F_x(x)
-  
-  # G^{-1}(u): Quantile function of the target evaluated at u
-  mapped_x <- stats::quantile(y, probs = u, names = FALSE, type = 1)
-  
-  return(mapped_x)
+  check_sample_1d(x, "x")
+  check_sample_1d(y, "y")
+
+  u <- (rank(x, ties.method = "first") - 0.5) / length(x)
+  empirical_quantile(y, u)
 }
 
-#' Logarithmic Map in 1D Wasserstein Space
+#' Logarithmic map in one-dimensional Wasserstein space
 #'
-#' Projects a target measure into the tangent space at a base measure.
-#' The mapping is defined by the displacement of the optimal transport map 
-#' from the identity.
+#' Lifts the target measure `mu` to the tangent space at the base measure
+#' `gamma`. The tangent vector is the displacement of the optimal map from
+#' the identity, \eqn{\log_\gamma(\mu) = T - \mathrm{id}}, evaluated at the
+#' points of `gamma`.
 #'
-#' @param gamma Numeric vector for the base measure.
-#' @param mu Numeric vector for the target measure.
+#' @param gamma Numeric vector: sample of the base measure.
+#' @param mu Numeric vector: sample of the target measure.
 #'
-#' @return A numeric vector representing the tangent vector.
+#' @return A numeric vector of the same length and order as `gamma`: the
+#'   displacement \eqn{T(\gamma_i) - \gamma_i} of each base point.
 #' @export
+#'
+#' @examples
+#' log_map_1d(c(0, 1, 2), c(1, 3, 5))
 log_map_1d <- function(gamma, mu) {
-  t_map <- transport_map_1d(gamma, mu)
-  
-  # The tangent vector is the optimal map minus the identity (the base measure)
-  tangent_vector <- t_map - gamma
-  return(tangent_vector)
+  transport_map_1d(gamma, mu) - gamma
 }
 
-#' Exponential Map in 1D Wasserstein Space
+#' Exponential map in one-dimensional Wasserstein space
 #'
-#' Pushes a tangent vector forward from a base measure to recover a distribution.
-#' This is defined as the push-forward of the base measure under the identity 
-#' plus the tangent vector.
+#' Pushes the base measure forward along a tangent vector,
+#' \eqn{\exp_\gamma(t v) = (\mathrm{id} + t v)_\# \gamma}. With
+#' `v = log_map_1d(gamma, mu)`, varying `t` from 0 to 1 traces the
+#' Wasserstein geodesic (displacement interpolation) from `gamma` to `mu`.
 #'
-#' @param gamma Numeric vector for the base measure.
-#' @param v Numeric vector representing the tangent vector.
+#' @param gamma Numeric vector: sample of the base measure.
+#' @param v Numeric vector of the same length as `gamma`: the tangent vector.
+#' @param t Step along the tangent vector. Defaults to 1. For a tangent vector
+#'   produced by [log_map_1d()], values in \eqn{[0, 1]} stay on the geodesic.
 #'
-#' @return A numeric vector representing the reconstructed measure.
+#' @return A numeric vector: the points of the pushed-forward sample, in the
+#'   order of `gamma`.
 #' @export
-exp_map_1d <- function(gamma, v) {
-  return(gamma + v)
+#'
+#' @examples
+#' gamma <- c(0, 1, 2)
+#' v <- log_map_1d(gamma, c(1, 3, 5))
+#' exp_map_1d(gamma, v, t = 0.5)
+exp_map_1d <- function(gamma, v, t = 1) {
+  check_sample_1d(gamma, "gamma")
+  check_sample_1d(v, "v")
+  if (length(v) != length(gamma)) {
+    stop("`v` must have the same length as `gamma`.", call. = FALSE)
+  }
+  if (!is.numeric(t) || length(t) != 1L || !is.finite(t)) {
+    stop("`t` must be a single finite number.", call. = FALSE)
+  }
+  gamma + t * v
 }
-

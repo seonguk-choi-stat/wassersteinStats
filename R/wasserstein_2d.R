@@ -1,40 +1,79 @@
-#' Compute 2D Wasserstein Distance
+#' Optimal assignment between two planar point clouds
 #'
-#' Calculates the W_p distance between two 2D empirical point clouds of equal size.
+#' Solves the optimal transport problem between two point clouds of the same
+#' size with equal weight on each point and cost \eqn{|x_i - y_j|^p}. For
+#' equal-size uniform clouds an optimal plan is a permutation, so the result
+#' is a one-to-one assignment. The problem is solved exactly with the network
+#' flow solver of the \pkg{transport} package.
 #'
-#' @param x A numeric matrix with 2 columns representing the source point cloud.
-#' @param y A numeric matrix with 2 columns representing the target point cloud.
-#' @param p A numeric value >= 1 specifying the order of the metric.
+#' @param x,y Numeric matrices with two columns and the same number of rows.
+#' @param p Order of the cost, a number \eqn{\ge 1}. Defaults to 2.
 #'
-#' @return A numeric value representing the W_p distance.
-#' @export
-wasserstein_2d <- function(x, y, p = 2) {
-  # Convert matrices to 'pgrid' objects for the transport package
-  px <- transport::pgrid(x)
-  py <- transport::pgrid(y)
-  
-  # Compute the Wasserstein distance directly
-  dist <- transport::wasserstein(transport::pp(x), transport::pp(y), p = p)
-  return(dist)
+#' @return An integer vector `sigma` with `y[sigma[i], ]` the point assigned
+#'   to `x[i, ]`.
+#' @noRd
+optimal_assignment_2d <- function(x, y, p = 2) {
+  check_cloud_2d(x, "x")
+  check_cloud_2d(y, "y")
+  check_p(p)
+  if (nrow(x) != nrow(y)) {
+    stop("`x` and `y` must have the same number of points.", call. = FALSE)
+  }
+  if (nrow(x) == 1L) {
+    return(1L)
+  }
+
+  plan <- transport::transport(transport::pp(x), transport::pp(y),
+                               p = p, method = "networkflow")
+  if (anyDuplicated(plan$from) || nrow(plan) != nrow(x)) {
+    stop("The transport solver did not return a one-to-one assignment.",
+         call. = FALSE)
+  }
+  sigma <- integer(nrow(x))
+  sigma[plan$from] <- plan$to
+  sigma
 }
 
-#' 2D Optimal Transport Map
+#' Wasserstein distance between two planar point clouds
 #'
-#' Finds the 1-to-1 assignment mapping points in x to points in y.
-#' Assumes x and y have the same number of points.
+#' Computes the p-Wasserstein distance between the empirical measures of two
+#' point clouds in \eqn{R^2} of the same size, each point carrying equal
+#' weight:
+#' \deqn{W_p = \Big(\min_\sigma \frac{1}{n}\sum_{i=1}^n
+#'   |x_i - y_{\sigma(i)}|^p\Big)^{1/p}.}
 #'
-#' @param x A numeric matrix with 2 columns.
-#' @param y A numeric matrix with 2 columns.
+#' @param x,y Numeric matrices with two columns and the same number of rows.
+#' @param p Order of the distance, a number \eqn{\ge 1}. Defaults to 2.
 #'
-#' @return A numeric matrix representing y reordered to match x.
+#' @return The distance \eqn{W_p}, a non-negative number.
 #' @export
+#'
+#' @examples
+#' set.seed(1)
+#' x <- matrix(rnorm(100), ncol = 2)
+#' wasserstein_2d(x, sweep(x, 2, c(3, 4), "+"))  # translation by (3, 4): 5
+wasserstein_2d <- function(x, y, p = 2) {
+  sigma <- optimal_assignment_2d(x, y, p)
+  dist <- sqrt(rowSums((x - y[sigma, , drop = FALSE])^2))
+  mean(dist^p)^(1 / p)
+}
+
+#' Optimal transport map between two planar point clouds
+#'
+#' Returns the optimal (\eqn{W_2}) assignment of the points of `y` to the
+#' points of `x`.
+#'
+#' @param x,y Numeric matrices with two columns and the same number of rows.
+#'
+#' @return A numeric matrix with the same shape as `x`: row `i` is the point
+#'   of `y` matched to `x[i, ]`.
+#' @export
+#'
+#' @examples
+#' x <- cbind(c(0, 1), c(0, 0))
+#' y <- cbind(c(1, 0), c(1, 1))
+#' transport_map_2d(x, y)
 transport_map_2d <- function(x, y) {
-  # Compute the optimal coupling matrix (assignment)
-  coupling <- transport::transport(transport::pp(x), transport::pp(y), p = 2)
-  
-  # Reorder the target points based on the optimal assignment indices
-  # The 'transport' output contains 'from' and 'to' indices
-  mapped_y <- y[coupling$to, , drop = FALSE]
-  
-  return(mapped_y)
+  sigma <- optimal_assignment_2d(x, y, p = 2)
+  y[sigma, , drop = FALSE]
 }
