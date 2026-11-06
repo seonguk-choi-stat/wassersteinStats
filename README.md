@@ -33,7 +33,7 @@ wassersteinStats::run_app()
 | `wasserstein_1d(x, y, p)` | Exact $W_p$ distance between two samples on the line, of any sizes |
 | `transport_map_1d(x, y)` | Monotone optimal transport map $T = F_y^{-1} \circ F_x$ |
 | `log_map_1d(gamma, mu)` | Tangent vector $T - \mathrm{id}$ at `gamma` |
-| `exp_map_1d(gamma, v, t)` | Push-forward $(\mathrm{id} + t v)_\# \gamma$; geodesics for $t \in [0, 1]$ |
+| `exp_map_1d(gamma, v, t)` | Push-forward $(\mathrm{id} + t v)_{\sharp} \gamma$; geodesics for $t \in [0, 1]$ |
 | `frechet_mean_1d(samples)` | Closed-form barycenter: the average of the quantile functions |
 | `frechet_mean_1d_descent(samples, step)` | Gradient descent on the Fréchet functional, with its path |
 | `wasserstein_2d(x, y, p)` | $W_p$ distance between planar point clouds of equal size (exact assignment) |
