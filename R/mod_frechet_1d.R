@@ -1,8 +1,7 @@
 #' Module: Fréchet mean of distributions on the line
 #'
-#' Several distributions, their Wasserstein barycenter, the ordinary
-#' (Euclidean) average of their densities, and the gradient descent that
-#' reaches the barycenter.
+#' Several distributions, their Wasserstein barycenter, and the gradient
+#' descent that reaches the barycenter.
 #'
 #' @param id Module id.
 #' @noRd
@@ -27,10 +26,10 @@ mod_frechet_1d_ui <- function(id) {
       width = 9,
       tags$p(
         "The Wasserstein barycenter averages quantile functions, so it keeps",
-        "the shape the distributions share. Averaging the densities instead",
-        "gives a mixture with one bump per distribution. Gradient descent",
-        "starts from the first distribution and moves its points toward the",
-        "average of their transport maps."
+        "the shape the distributions share. Gradient descent starts from the",
+        "first distribution and moves its points toward the average of their",
+        "transport maps; in one dimension a step size of 1 reaches the",
+        "barycenter in a single step."
       ),
       sliderInput(ns("iter"), "Iteration of gradient descent", min = 0,
                   max = 1, value = 0, step = 1, width = "100%",
@@ -86,23 +85,27 @@ mod_frechet_1d_server <- function(id) {
     })
 
     output$density_plot <- renderPlot({
-      inputs <- do.call(rbind, lapply(seq_along(samples()), function(i) {
-        data.frame(value = samples()[[i]], group = paste("Input", i))
-      }))
-      labels <- c("Wasserstein barycenter", "Average of densities",
+      labels <- c(sprintf("Input distributions (%d)", length(samples())),
+                  "Wasserstein barycenter",
                   sprintf("Gradient descent, iteration %d", shown_iter()))
+      inputs <- do.call(rbind, lapply(seq_along(samples()), function(i) {
+        data.frame(value = samples()[[i]], input = i, group = labels[1])
+      }))
       summaries <- rbind(
-        data.frame(value = barycenter(), group = labels[1]),
-        data.frame(value = unlist(samples()), group = labels[2]),
+        data.frame(value = barycenter(), group = labels[2]),
         data.frame(value = current(), group = labels[3])
       )
+      inputs$group <- factor(inputs$group, levels = labels)
       summaries$group <- factor(summaries$group, levels = labels)
+      colours <- stats::setNames(c("grey70", "steelblue", "black"), labels)
+      linetypes <- stats::setNames(c("solid", "solid", "dashed"), labels)
 
       ggplot2::ggplot() +
         ggplot2::geom_density(
           data = inputs,
-          ggplot2::aes(x = .data$value, group = .data$group),
-          colour = "grey75", linewidth = 0.5
+          ggplot2::aes(x = .data$value, group = .data$input,
+                       colour = .data$group, linetype = .data$group),
+          linewidth = 0.6
         ) +
         ggplot2::geom_density(
           data = summaries,
@@ -110,13 +113,11 @@ mod_frechet_1d_server <- function(id) {
                        linetype = .data$group),
           linewidth = 1.1
         ) +
-        ggplot2::scale_colour_manual(
-          values = c("steelblue", "darkorange", "black"), name = NULL
-        ) +
-        ggplot2::scale_linetype_manual(
-          values = c("solid", "solid", "dashed"), name = NULL
-        ) +
-        ggplot2::labs(title = "Inputs (grey) and their averages",
+        ggplot2::scale_colour_manual(values = colours, breaks = labels,
+                                     name = NULL, drop = FALSE) +
+        ggplot2::scale_linetype_manual(values = linetypes, breaks = labels,
+                                       name = NULL, drop = FALSE) +
+        ggplot2::labs(title = "Input distributions and their Wasserstein barycenter",
                       x = "Value", y = "Density") +
         theme_ws()
     })
