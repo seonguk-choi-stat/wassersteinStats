@@ -1,0 +1,10 @@
+name: wassersteinStats
+title:
+username: seonguk-choi-stat
+account: seonguk-choi-stat
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 18380987
+bundleId: 12788721
+url: https://seonguk-choi-stat.shinyapps.io/wassersteinStats/
+version: 1
